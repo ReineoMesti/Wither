@@ -1,4 +1,4 @@
-# Wither #
+# Withered #
 
 Wither (temporarily named so) is a role play adventure game written in python.
 
