@@ -1,8 +1,11 @@
 # Module `item` for Withered 0.1 alpha
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import copy
-to_import = {"display":"disp", "expandrandom":"exrand", "debug":"dbg"}
+
+to_import = {"display":"disp", "expandrandom":"exrand",
+             "debug":"dbg", 'fileio':'fio'}
 for module, newname in to_import.items():
     try:
         exec('import '+module+' as '+newname)
@@ -12,51 +15,100 @@ for module, newname in to_import.items():
 # NOTE THAT THERE MIGHT BE SOME PROBLEMS WITH  
 #   THE USE OF COPY (DEEP OR SHALLOW)
 #
-
+class bag_core:
+    def __init__(self, size, name):
+        self.contains = dict()
+        self.weight = 0
+        self.size = size
+        self.name = name
+    def add(self, item, count):
+        if self.weight == self.size:
+            return 0
+        elif self.weight + count <= self.size:
+            if item in self.contains.keys():
+                self.contains[item] += count
+            else:
+                self.contains[item] = count
+            self.weight += count
+            return count
+        else:
+            remain = self.size - self.weight
+            if item in self.contains.keys():
+                self.contains[item] += remain
+            else:
+                self.contains[item] = remain
+            self.weight = self.size
+            return remain
+    def drop(self, item, count):
+        if item not in self.contains.keys():
+            return count
+        elif self.contains[item] <= count:
+            dropcount = self.contains[item]
+            self.weight -= dropcount
+            del self.contains[item]
+            return count - dropcount
+        else:
+            self.contains[item] -= count
+            self.weight -= count
+            return 0
+    def count_item(self, item):
+        if item not in self.contains.keys():
+            return 0
+        return self.contains[item]
+    def remain(self):
+        return self.size - self.weight
 class bag_page_readonly(disp.display_page):
-    def __init__(self, master, text):
+    def __init__(self, master, text, size):
         disp.display_page.__init__(self, master, text)
-        self.storage_counter = dict()
+        self.bag = bag_core(size, text)
         self.storage_strvar = dict()
         self.labels = dict()
         self.labels_row = dict()
         self.add('Nothing', 0)
     def count_item(self, itemname):
-        if itemname in self.storage_counter.keys():
-            return self.storage_counter[itemname]
-        else:
-            return 0
+        return self.bag.count_item(itemname)
     def add(self,itemname, count):
-        if 'Nothing' in self.storage_counter:
+        'Add item to bag, return the number of item NOT added' 
+        undone = max(count - self.bag.remain(), 0)
+        count -= undone
+        if count == 0:
+            return undone
+        if 'Nothing' in self.bag.contains:
             self.drop('Nothing', 0, True)
-        if itemname in self.storage_counter.keys():
-            self.storage_counter[itemname] += count
-            self.storage_strvar[itemname].set(str(self.storage_counter[itemname]))
+        if itemname in self.bag.contains.keys():
+            self.bag.add(itemname, count)
+            self.storage_strvar[itemname].set(str(self.bag.contains[itemname]))
         else:
-            self.storage_counter[itemname] = count
+            self.bag.add(itemname, count)
             self.storage_strvar[itemname] = tk.StringVar()
-            if self.storage_counter[itemname]!=0:
-                self.storage_strvar[itemname].set(str(self.storage_counter[itemname]))
+            if self.bag.count_item(itemname)!=0:
+                # If it's zero we dont display it.
+                self.storage_strvar[itemname].set(str(self.bag.contains[itemname]))
             self.labels[itemname] = dict()
             self.labels[itemname]['name'] = tk.Label(self.page, text=itemname)
             self.labels[itemname]['count'] = tk.Label(self.page, textvariable=self.storage_strvar[itemname])
-            rownum = len(self.labels)
+            if len(self.labels_row)>0:
+                rownum = max(self.labels_row.values())+1
+            else:
+                rownum = 0
             self.labels[itemname]['name'].grid(row=rownum,column=0,ipadx=20,ipady=5,sticky='w')
             self.labels[itemname]['count'].grid(row=rownum,column=1,ipadx=20,ipady=5,sticky='e')
             self.labels_row[itemname] = rownum
+        return undone
     def drop(self, itemname, count, serious=False):
-        if itemname not in self.storage_counter.keys():
-            return False
+        'Drop item from bag, return the number of item NOT dropped'
+        if self.bag.count_item(itemname)==0:
+            return count
         else:
-            cnt = self.storage_counter[itemname]
+            cnt = self.bag.count_item(itemname)
             if cnt > count:
-                self.storage_counter[itemname] -= count
+                self.bag.drop(itemname, count)
                 self.storage_strvar[itemname].set(str(cnt-count))
-                return True
-            elif cnt < count:
-                return False
+                return 0
             else:
-                del self.storage_counter[itemname]
+                undone = count - cnt
+                count = cnt
+                self.bag.drop(itemname, count)
                 self.labels[itemname]['name'].destroy()
                 del self.labels[itemname]['name']
                 self.labels[itemname]['count'].destroy()
@@ -74,23 +126,25 @@ class bag_page_readonly(disp.display_page):
                 if placekey==None:
                     if not serious:
                         self.add('Nothing', 0)
-                    return True
+                    return undone
+                if self.labels_row[placekey] < rownum:
+                    return undone
                 self.labels[placekey]['name'].grid(row=rownum, column=0,ipadx=20,ipady=5,sticky='w')
                 self.labels[placekey]['count'].grid(row=rownum, column=1,ipadx=20,ipady=5,sticky='e')
-                return True
+                return undone
     def relist_contents(self):
         'Flush the display immediately'
-        tempt = self.storage_counter
-        self.storage_counter = dict()
+        tempt = self.bag
+        self.bag = bag_core(tempt.size, tempt.name)
         self.storage_strvar = dict()
         self.labels = dict()
         self.labels_row = dict()
-        for key in tempt.keys():
-            self.add(key, tempt[key])
-        self.storage_counter = tempt
+        for key in tempt.contains.keys():
+            self.add(key, tempt.count_item(key))
+        self.bag = tempt
         del tempt
     def load_bag(self, source):
-        self.storage_counter = copy.deepcopy(source)
+        self.bag = source
         self.relist_contents()
 class storage_page(disp.display_page):
     # A storage page used in interactive facilities.
@@ -158,13 +212,12 @@ class storage_page(disp.display_page):
             return int(self.table.item(cursel)['values'][1])
         except:
             return None
-class transferring_window:
+class transferring_window(disp.child_window):
     'A toplevel window for item transferring'
     # THIS CLASS IS TESTED FOR NOW AND SEEMED TO BE OF NO
     #   PROBLEM WITH ITS FUNCTION EXPECTED.
     def __init__(self, master, title, leftname, rightname, leftsource, rightsource):
-        self.window = tk.Toplevel(master)
-        self.window.title(title)
+        disp.child_window(self, master, title, grab=True)
         self.leftsto = storage_page(self.window, text=leftname, source=leftsource)
         self.rightsto = storage_page(self.window, text=rightname, source=rightsource)
         self.transfer_bar = tk.Frame(self.window)
@@ -239,14 +292,18 @@ class transferring_window:
         return (copy.deepcopy(self.leftsto.source), copy.deepcopy(self.rightsto.source))
 class craft_page(disp.display_page):
     # NOT done yet.
+    # Craft formula should be like:
+    # { "plank": {"in": {"wood":4, "saw":0}, "out:4}, ...}
     def __init__(self, master, text, source):
         disp.display_page.__init__(self, master, text)
         self.leftlist = tk.Listbox(self.page, width=20,height=26)
         self.leftlist.pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
         self.rightbar = tk.Frame(self.page)
         self.rightbar.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
-        self.display = tk.Label(self.rightbar, height=25, bg='white')
-        self.display.pack(fill=tk.X, padx=5, expand=True)
+        self.display_text = tk.StringVar()
+        self.display = tk.Label(self.rightbar, height=25,
+                                bg='white', textvariable=self.display_text)
+        self.display.pack(fill=tk.X, expand=True, padx=5)
         self.operators = tk.Frame(self.rightbar)
         self.operators.pack(fill=tk.X, pady=5)
         self.do_one = tk.Button(self.operators, text='craft one')
@@ -258,32 +315,49 @@ class craft_page(disp.display_page):
         self.formulas = dict()
         self.leftlist.bind('<<ListboxSelect>>', self.display_cursel)
         if source!=None:
-            self.source = copy.copy(source)
+            self.source = source
         else:
             self.source = None
-        # Source must be a bag, since players are only allowed to craft with staff from their bag.
+        # Source must be a bag_core, since players are only allowed to
+        # craft with items from their bag.
+        self.do_one['command'] = self.responser_do_one
+        self.do_several['command'] = self.responser_do_several
+    def responser_do_one(self):
+        self.craft_current(1)
+    def responser_do_several(self):
+        number = int(self.numchoice.get())
+        result = self.craft_current(number)
+        if result == False:
+            messagebox.showinfo('craft failed', 'No enough ingredients')
     def bind_source(self, source):
         self.source = source
-    def load_formula(self, formulas):
+    def load(self, formulas, clear=False):
         'Add new formula to craft page.'
-        self.formulas.update(formulas)
+        if clear:
+            self.formulas = dict()
+        self.formulas.update(copy.deepcopy(formulas))
         self.leftlist.delete(0, 'end')
         for name in self.formulas.keys():
-            self.leftlist.insert('end', name+'\t'+str(self.formulas[name]['out']))
+            self.leftlist.insert('end', name)
     def display_cursel(self, arg=None):
+        'Flush the display of currently selected formula'
         cursel_index = self.leftlist.curselection()
         try:
-            cursel = self.leftlist.get(cursel_index)
+            cursel = self.leftlist.get(cursel_index[0])
             assert cursel!=None
         except:
             return
-        current_formula = self.formulas[cursel]['in']
-        dbs.log('item.py', str(current_formula)+'\t selected')
+        current_formula = self.formulas[cursel]['in'] # ingredients req.
+        dbg.log('item.py', str(current_formula)+'\t selected')
         if self.craftable(current_formula, 1):
             self.do_one['state'] = 'normal'
         else:
             self.do_several['state'] = 'disabled'
             self.do_one['state'] = 'disabled'
+        outtext = ''
+        for key in current_formula.keys():
+            outtext += key + '\t' + str(current_formula[key]) + '\n'
+        self.display_text.set(outtext)
     def craftable(self, required, count):
         if self.source == None:
             dbs.error('item.py', 'Craft with source unbinded')
@@ -299,19 +373,22 @@ class craft_page(disp.display_page):
                 # 0 means not consumed. But it is still required.
                 return False
         return True
-    def craft_current(self, destination, count=1):
+    def craft_current(self, count=1):
         'Craft according to formula currently selected, make `count` items'
         cursel_index = self.leftlist.curselection()
         if len(cursel_index)==0:
             self.do_one['state'] = 'disabled'
             return False
-        current_formula = self.leftlist.get(cursel_index[0])
+        current_formula = self.leftlist.get(cursel_index[0]) #product name + option
         ings = self.formulas[current_formula]['in']
         if not self.craftable(ings, count):
+            self.do_one['state'] = 'disabled'
             return False
         for key in ings.keys():
             self.source.drop(key, ings[key] * count)
-        self.source.add(current_formula, self.formulas[current_formula]['out'])
+        product = current_formula.split(':')[0]
+        # for some formula with same output name, we have
+        # "plank:formulaA": ....
+        # "plank:formulaB": ....
+        self.source.add(product, self.formulas[current_formula]['out'])
         return True
-    
-            
