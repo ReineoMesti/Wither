@@ -3,6 +3,7 @@ from tkinter import ttk
 import lib.map as mps
 import lib.item as its
 import lib.debug as debug
+import lib.fileio as fio
 
 rootwin = tk.Tk()
 rootwin.title('Demo Winter')
@@ -31,10 +32,24 @@ midright_bar.add(midright_bar_bag_page, text='Bag')
 midright_bar.add(midright_bar_craft_page, text='Craft')
 midright_bar.add(midright_bar_block_page, text='Location')
 
-player_bag = its.bag_page_readonly(midright_bar_bag_page, 'backpack')
+
+player_bag = its.bag_page_readonly(midright_bar_bag_page, 'backpack', 20)
 player_bag.pack(fill=tk.BOTH, padx=5, pady=5, expand=True)
 
-handcraft_bar = its.craft_page(midright_bar_craft_page, 'craft')
+def midright_change_response(*arg):
+    global midright_bar, player_bag
+    title = midright_bar.tab(midright_bar.select())['text']
+    if title == 'Bag':
+        player_bag.relist_contents()
+midright_bar.bind('<<NotebookTabChanged>>', midright_change_response)
+
+handcraft_bar = its.craft_page(midright_bar_craft_page, 'craft', player_bag.bag)
 handcraft_bar.grid(row=0, column=0, padx=10, pady=10)
 
+handcraft_bar.load(fio.get_formula('crf.json'))
+
 map_page.repaint_map()
+
+
+#rootwin.mainloop()
+
