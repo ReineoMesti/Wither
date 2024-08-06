@@ -1,0 +1,4 @@
+{
+	"plank:option 1":{"in":{"wood":1, "saw":0}, "out":4},
+	"plank:option 2":{"in":{"wood":1, "chainsaw":0}, "out":4}
+}

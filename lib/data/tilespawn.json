@@ -1,0 +1,23 @@
+[
+	{
+		"name":"ruin",
+		"facility": 
+		[
+			{"chance":0.5, "spawn":["wreckage"]},
+			{"chance":0.35, "spawn":["wreckage","abandoned hut"]},
+			{"chance":0.15, "spawn":["wreckage","damaged factory"]}
+		],
+		"pest average": 30
+	}
+	{
+		"name":"field",
+		"facility":
+		[
+			{"chance":0.5, "spawn":[null]}
+			{"chance":0.35, "spawn":["withered tussock"]},
+			{"chance":0.14, "spawn":["withered tussock","dying tree"]},
+			{"chance":0.01, "spawn":["withered tussock","abandoned hut"]}
+		],
+		"pest average":10
+	}
+]
