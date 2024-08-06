@@ -43,5 +43,16 @@ class display_page:
         command += ')'
         exec(command)
     def __del__(self):
-        self.destroy()
-
+        self.page.destroy()
+class child_window:
+    def __init__(self, master, title, grab=False):
+        self.window = tk.Toplevel(master)
+        self.window.title(title)
+        if grab:
+            self.window.grab_set()
+    def iconify(self):
+        self.window.inconify()
+    def deiconify(self):
+        self.window.deiconify()
+    def protocol(self, event, function):
+        self.window.protocol(event, function)
