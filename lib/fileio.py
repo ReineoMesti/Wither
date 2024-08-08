@@ -15,3 +15,7 @@ def get_formula(filename):
     content = content.replace('\t', '')
     output = eval(content)
     return copy.deepcopy(output)
+def get_effect_map_instruction(filename):
+    file = open('lib/data/'+filename)
+    content = file.read()
+    raise dbg.UnimplementError()

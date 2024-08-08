@@ -34,7 +34,7 @@ class block:
     def spawn_facility(self):
         tp = self.type
         if tp == 'field':
-            count = exrand.liner_uneven(4, 4, 11)
+            count = exrand.polynominal_linear(4, 4, 11)
             for i in range(count):
                 self.content.append(facility('Grass'))
 
