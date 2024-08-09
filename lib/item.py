@@ -312,7 +312,6 @@ class craft_page(disp.display_page):
         self.operators.pack(fill=tk.X, pady=5)
         self.do_one = tk.Button(self.operators, text='craft one')
         self.do_one.grid(row=0, column=0, padx=5)
-        self.numchoice = tk.Spinbox(self.operators, from_=2, to=100)
         self.do_several = tk.Button(self.operators, text='craft given')
         self.do_several.grid(row=0, column=2, padx=5)
         self.num_textvar = tk.StringVar(value='1')
@@ -334,10 +333,19 @@ class craft_page(disp.display_page):
         # craft with items from their bag.
         self.do_one['command'] = self.responser_do_one
         self.do_several['command'] = self.responser_do_several
+    def check_spinbox(self):
+        inputstr = (self.num_textvar.get())
+        if inputstr.isdigit():
+            if int(inputstr)>0:
+                self.update_button()
+                return True
+        return False
+    def reset_spinbox(self):
+        self.num_textvar.set('1')
     def responser_do_one(self):
         self.craft_current(1)
     def responser_do_several(self):
-        number = int(self.numchoice.get())
+        number = int(self.num_textvar.get())
         result = self.craft_current(number)
         if result == False:
             messagebox.showinfo('craft failed', 'No enough ingredients')
@@ -373,22 +381,23 @@ class craft_page(disp.display_page):
         self.leftlist.delete(0, 'end')
         for name in self.formulas.keys():
             self.leftlist.insert('end', name)
-    def display_cursel(self, arg=None):
-        'Flush the display of currently selected formula'
+    def get_current_formula(self):
         cursel_index = self.leftlist.curselection()
         try:
             assert len(cursel_index)>0
             cursel = self.leftlist.get(cursel_index[0])
             assert cursel!=None
         except:
+            return None
+        return self.formulas[cursel]
+    def display_cursel(self, arg=None):
+        'Flush the display of currently selected formula'
+        current_formula = self.get_current_formula()
+        if current_formula == None:
             return
-        current_formula = self.formulas[cursel]['in'] # ingredients req.
-        dbg.log('item.py', str(current_formula)+'\t selected')
-        if self.craftable(current_formula, 1):
-            self.do_one['state'] = 'normal'
-        else:
-            self.do_several['state'] = 'disabled'
-            self.do_one['state'] = 'disabled'
+        current_formula = current_formula['in']
+        self.reset_spinbox()
+        self.update_button()
         outtext = ''
         for key in current_formula.keys():
             outtext += key + '\t' + str(current_formula[key]) + '\n'
@@ -412,12 +421,11 @@ class craft_page(disp.display_page):
         'Craft according to formula currently selected, make `count` items'
         cursel_index = self.leftlist.curselection()
         if len(cursel_index)==0:
-            self.do_one['state'] = 'disabled'
+            self.do_one.config(state=tk.DISABLED)
             return False
         current_formula = self.leftlist.get(cursel_index[0]) #product name + option
         ings = self.formulas[current_formula]['in']
         if not self.craftable(ings, count):
-            self.do_one['state'] = 'disabled'
             return False
         for key in ings.keys():
             self.source.drop(key, ings[key] * count)
