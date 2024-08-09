@@ -132,6 +132,8 @@ class bag_page_readonly(disp.display_page):
                 self.labels[placekey]['name'].grid(row=rownum, column=0,ipadx=20,ipady=5,sticky='w')
                 self.labels[placekey]['count'].grid(row=rownum, column=1,ipadx=20,ipady=5,sticky='e')
                 return undone
+    def flush(self):
+        self.relist_contents()
     def relist_contents(self):
         'Flush the display immediately'
         tempt = self.bag
@@ -186,6 +188,8 @@ class storage_page(disp.display_page):
             self.source[itemname] -= count
             self.table.set(self.table_rows[itemname], column = 'count', value=str(self.source[itemname]))
         return True
+    def flush(self):
+        self.relist_contents()
     def relist_contents(self):
         stor = self.source
         self.source = dict()
@@ -308,6 +312,8 @@ class craft_page(disp.display_page):
         self.operators.pack(fill=tk.X, pady=5)
         self.do_one = tk.Button(self.operators, text='craft one')
         self.do_one.grid(row=0, column=0, padx=5)
+        self.do_several = tk.Button(self.operators, text='craft given')
+        self.do_several.grid(row=0, column=2, padx=5)
         self.num_textvar = tk.StringVar(value='1')
         self.numchoice = tk.Spinbox(self.operators,
                                     from_ = 1, to = 100,
@@ -317,8 +323,6 @@ class craft_page(disp.display_page):
                                     validatecommand=self.check_spinbox,
                                     invalidcommand=self.reset_spinbox)
         self.numchoice.grid(row=0, column=1, padx=5)
-        self.do_several = tk.Button(self.operators, text='craft given')
-        self.do_several.grid(row=0, column=2, padx=5)
         self.formulas = dict()
         self.leftlist.bind('<<ListboxSelect>>', self.display_cursel)
         if source!=None:
@@ -348,6 +352,8 @@ class craft_page(disp.display_page):
     def update_button(self):
         current_formula = self.get_current_formula()
         if current_formula == None:
+            self.do_several.config(state=tk.DISABLED)
+            self.do_one.config(state=tk.DISABLED)
             return
         current_formula = current_formula['in']
         if not self.craftable(current_formula, 1):
@@ -378,6 +384,7 @@ class craft_page(disp.display_page):
     def get_current_formula(self):
         cursel_index = self.leftlist.curselection()
         try:
+            assert len(cursel_index)>0
             cursel = self.leftlist.get(cursel_index[0])
             assert cursel!=None
         except:
@@ -428,3 +435,7 @@ class craft_page(disp.display_page):
         # "plank:formulaB": ....
         self.source.add(product, self.formulas[current_formula]['out'])
         return True
+    def flush(self):
+        self.leftlist.select_clear(0)
+        self.update_button()
+        self.display_text.set('')

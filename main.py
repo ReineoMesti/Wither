@@ -5,6 +5,7 @@ import lib.item as its
 import lib.debug as debug
 import lib.fileio as fio
 import lib.player as plr
+import time
 
 rootwin = tk.Tk()
 rootwin.title('Demo Winter')
@@ -49,11 +50,16 @@ def midright_change_response(*arg):
     global midright_bar, player_bag
     title = midright_bar.tab(midright_bar.select())['text']
     if title == 'Bag':
-        player_bag.relist_contents()
+        player_bag.flush()
+    elif title == 'Craft':
+        handcraft_bar.flush()
+
+time.sleep(5)
 midright_bar.bind('<<NotebookTabChanged>>', midright_change_response)
 
+# init
 handcraft_bar.load(fio.get_formula('crf.json'))
-
+handcraft_bar.flush()
 map_page.repaint_map()
 
 #rootwin.mainloop()
