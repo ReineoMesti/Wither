@@ -19,6 +19,8 @@ class display_page:
         self.page.destroy()
     def config(self, **kw):
         self.page.config(**kw)
+    def flush(self):
+        return
     def __del__(self):
         self.page.destroy()
 class child_window:
