@@ -312,9 +312,7 @@ class craft_page(disp.display_page):
         self.operators.pack(fill=tk.X, pady=5)
         self.do_one = tk.Button(self.operators, text='craft one')
         self.do_one.grid(row=0, column=0, padx=5)
-<<<<<<< HEAD
         self.numchoice = tk.Spinbox(self.operators, from_=2, to=100)
-=======
         self.do_several = tk.Button(self.operators, text='craft given')
         self.do_several.grid(row=0, column=2, padx=5)
         self.num_textvar = tk.StringVar(value='1')
@@ -325,7 +323,6 @@ class craft_page(disp.display_page):
                                     validate = tk.ALL,
                                     validatecommand=self.check_spinbox,
                                     invalidcommand=self.reset_spinbox)
->>>>>>> dev
         self.numchoice.grid(row=0, column=1, padx=5)
         self.formulas = dict()
         self.leftlist.bind('<<ListboxSelect>>', self.display_cursel)
@@ -344,8 +341,6 @@ class craft_page(disp.display_page):
         result = self.craft_current(number)
         if result == False:
             messagebox.showinfo('craft failed', 'No enough ingredients')
-<<<<<<< HEAD
-=======
     def update_button(self):
         current_formula = self.get_current_formula()
         if current_formula == None:
@@ -368,7 +363,6 @@ class craft_page(disp.display_page):
             dbg.error('item.py', 'Craft spinbox invalid value.')
             self.do_several.config(state=tk.DISABLED)
             return
->>>>>>> dev
     def bind_source(self, source):
         self.source = source
     def load(self, formulas, clear=False):
