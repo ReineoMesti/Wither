@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import copy
-
+'''
 to_import = {"display":"disp", "expandrandom":"exrand", "debug":"dbg",
              "fileio":"fio"}
 for module, newname in to_import.items():
@@ -9,6 +9,11 @@ for module, newname in to_import.items():
         exec('import '+module+' as '+newname)
     except ModuleNotFoundError:
         exec('import lib.'+module+' as '+newname)
+'''
+import lib.display as disp
+import lib.expandrandom as exrand
+import lib.debug as dbg
+import lib.fileio as fio
 
 type_ascii = {'empty': ' ', 'field': '.', 'forest': '*', 'wall':'#',
               'water': '~', 'shallow': '~', 'beacon':'O', 'obstruction':'x', 'ruin':'%',
@@ -29,35 +34,20 @@ def reachable(x, y):
 class facility:
     def __init__(self, name):
         self.name = name
-        self.visual = None
-        self.interactives = []
-    def spawn_display(self, master):
-        self.visual = disp.display_page(master, self.name)
-        self.interactives = []
-        self.commands = []
-        if self.name == 'warehouse':
-            pair = {"button":tk.Button(self.visual, text="storage")}
-            # pair["command"] = lambda 
-            # self.interactives
-        return self.visual
-    def destory_display(self):
-        pass
 class block:
-    def __init__(self, tp:str, name:str, desc:str, attr_comm:dict, attr_spec:dict):
+    def __init__(self, tp, name, desc_index, attr_comm, attr_spec):
         self.type = tp
         self.name = name
-        self.desc = desc
+        self.text_index = desc_index
         self.common = attr_comm
         self.special = attr_spec
-        self.facilities = []
-        self.spawn_facility()
-        self.symbol = type_ascii[self.type]
+        self.content = []
     def spawn_facility(self):
         tp = self.type
         if tp == 'field':
             count = exrand.polynominal_linear(4, 4, 11)
             for i in range(count):
-                self.facilities.append(facility('Grass'))
+                self.content.append(facility('Grass'))
 
 
 # -------- Functions controlling blocks' visibility ----------
@@ -65,11 +55,11 @@ roundview = lambda x, y: x**2+y**2<=25
 
 # -------- Map Display Part ----------
 class map_page(disp.display_page):
-    def __init__(self, master, text:str, pos:list, viewfunc):
+    def __init__(self, master, text:str, position:list, viewfunc):
         global totalsize, mapsize
         disp.display_page.__init__(self, master, text)
         self.viewrule = viewfunc
-        self.pos = pos
+        self.position = position
         self.map = None
         self.map_bar = tk.LabelFrame(self.page)
         self.map_bar.grid(row=0,column=0,padx=5,pady=5)
@@ -81,7 +71,7 @@ class map_page(disp.display_page):
         for j in range(mapsize[1]):
             for i in range(mapsize[0]):
                 self.map_field[i][j].grid(column=i, row=j,padx=2,pady=2)
-                self.map_content[i][j].set(' ')
+                self.map_content[i][j].set('.')
         self.move_operate_bar = tk.Frame(self.page)
         self.move_operate_bar.grid(row=1,column=0,padx=5,pady=5)
         move_button_text = ['left', 'right', 'up', 'down']
@@ -96,7 +86,7 @@ class map_page(disp.display_page):
         self.map_desc_title = tk.Label(self.map_desc_bar, textvariable=self.desc_title)
         self.map_desc_content = tk.Label(self.map_desc_bar, textvariable=self.desc_content)
         self.map_desc_title.pack(anchor='n')
-        self.map_desc_content.pack(anchor='n', fill=tk.BOTH, expand=True)
+        self.map_desc_content.pack(anchor='n')
         self.move_bind_command = None
         self.move_cost_check = None
     def move_bind(self, command):
@@ -109,15 +99,13 @@ class map_page(disp.display_page):
         for i in range(totalsize[1]):
             self.map.append([])
             for j in range(totalsize[0]):
-                self.map[i].append(block('field', 'Empty field', 'Empty field. Nothing here.', dict(), dict()))
-    def flush(self):
-        self.repaint_map()
+                self.map[i].append(block('field', 'Empty field', 0, dict(), dict()))       
     def repaint_map(self):
         global mapsize
         border_dist_x = (mapsize[0] + 1) // 2 - 1
         border_dist_y = (mapsize[1] + 1) // 2 - 1
-        x_left = self.pos[0] - border_dist_x
-        y_up = self.pos[1] - border_dist_y
+        x_left = self.position[0] - border_dist_x
+        y_up = self.position[1] - border_dist_y
         matrix = [[' '] * mapsize[1] for u in range(mapsize[0])]
         for y in range(mapsize[1]):
             for x in range(mapsize[0]):
@@ -126,37 +114,35 @@ class map_page(disp.display_page):
                     continue
                 visible = self.viewrule(x-(mapsize[0]+1)//2+1, y-(mapsize[1]+1)//2+1)
                 if visible:
-                    if (x+x_left, y+y_up)==tuple(self.pos):
+                    if (x+x_left, y+y_up)==tuple(self.position):
                         matrix[x][y] = SELF_SYMBOL
                     else:
-                        matrix[x][y] = self.map[x+x_left][y+y_up].symbol
+                        matrix[x][y] = type_ascii[self.map[x+x_left][y+y_up].type]
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
                 self.map_content[i][j].set(matrix[i][j])
-        self.desc_title.set(self.map[self.pos[0]][self.pos[1]].name)
-        self.desc_content.set(self.map[self.pos[0]][self.pos[1]].desc)
     def flush_move_button_state(self):
         assert callable(self.move_cost_check)
-        playerpos = self.pos
+        playerpos = self.position
         move_direction = ((0,-1),(0,1),(-1,0),(1,0))
         for i in range(4):
             if (not reachable(playerpos[0]+move_direction[i][0],
                               playerpos[1]+move_direction[i][1])) \
-            or not self.move_cost_check(self.pos, *move_direction[i]):
-                self.move_button[i].config(state=tk.DISABLED)
+            or not self.move_cost_check(self.position, *move_direction[i]):
+                self.move_button[i].config(state='disabled')
             else:
-                self.move_button[i].config(state=tk.NORMAL)
+                self.move_button[i].config(state='normal')
     def move(self, dx, dy, repaint = True):
         'Move towards a certain direction (x+=dx, y+=dy)'
-        if reachable(self.pos[0]+dx, self.pos[1]+dy):
-            self.pos[0] += dx
-            self.pos[1] += dy
+        if reachable(self.position[0]+dx, self.position[1]+dy):
+            self.position[0] += dx
+            self.position[1] += dy
             if repaint:
                 self.repaint_map()
                 self.flush_move_button_state()
             if self.move_bind_command != None:
                 try:
-                    self.move_bind_command(copy.deepcopy(self.pos), dx, dy)
+                    self.move_bind_command(copy.deepcopy(self.position), dx, dy)
                 except:
                     dbg.error(__name__, 'map moving binded command calling error')
                     raise
@@ -165,19 +151,5 @@ class map_page(disp.display_page):
         move_command = (lambda:self.move(0,-1),lambda:self.move(0,1),lambda:self.move(-1,0),lambda:self.move(1,0))
         for i in range(4):
             self.move_button[i].config(command=copy.deepcopy(move_command[i]))
-    def get_pos(self):
-        return tuple(self.pos)
-class block_page(disp.display_page):
-    def __init__(self, master, text, pos, map_):
-        disp.display_page.__init__(self, master, text)
-        self.pos = pos
-        self.map = map_
-    def flush(self):
-        if len(self.blocks)>0:
-            for i in range(len(self.blocks)):
-                self.blocks[i].destroy()
-            while len(self.blocks)>0:
-                self.blocks.pop()
-        for facility in self.map[self.pos[0]][self.pos[1]].facilities:
-            self.blocks.append(facility.spawn_display(), self.page)
-            self.blocks[-1].pack(fill=tk.X)
+    def get_position(self):
+        return tuple(self.position)

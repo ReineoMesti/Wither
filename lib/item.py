@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import copy
-
+'''
 to_import = {"display":"disp", "expandrandom":"exrand",
              "debug":"dbg", 'fileio':'fio'}
 for module, newname in to_import.items():
@@ -11,6 +11,12 @@ for module, newname in to_import.items():
         exec('import '+module+' as '+newname)
     except ModuleNotFoundError:
         exec('import lib.'+module+' as '+newname)
+'''
+
+import lib.display as disp
+import lib.expandrandom as exrand
+import lib.debug as dbg
+import lib.fileio as fio
 
 # NOTE THAT THERE MIGHT BE SOME PROBLEMS WITH  
 #   THE USE OF COPY (DEEP OR SHALLOW)
@@ -133,8 +139,6 @@ class bag_page_readonly(disp.display_page):
                 self.labels[placekey]['count'].grid(row=rownum, column=1,ipadx=20,ipady=5,sticky='e')
                 return undone
     def flush(self):
-        self.relist_contents()
-    def relist_contents(self):
         'Flush the display immediately'
         tempt = self.bag
         self.bag = bag_core(tempt.size, tempt.name)
@@ -147,7 +151,7 @@ class bag_page_readonly(disp.display_page):
         del tempt
     def load_bag(self, source):
         self.bag = source
-        self.relist_contents()
+        self.flush()
 class storage_page(disp.display_page):
     # A storage page used in interactive facilities.
     # Exists in a tk.toplevel for item tranferring.
@@ -165,7 +169,7 @@ class storage_page(disp.display_page):
         self.yscroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.table['yscrollcommand'] = self.yscroll.set
         self.yscroll['command'] = self.table.yview
-        self.relist_contents()
+        self.flush()
     def add(self, itemname, count):
         if itemname in self.source.keys():
             self.source[itemname] += count
@@ -189,8 +193,6 @@ class storage_page(disp.display_page):
             self.table.set(self.table_rows[itemname], column = 'count', value=str(self.source[itemname]))
         return True
     def flush(self):
-        self.relist_contents()
-    def relist_contents(self):
         stor = self.source
         self.source = dict()
         for key in stor.keys():
@@ -404,7 +406,7 @@ class craft_page(disp.display_page):
         self.display_text.set(outtext)
     def craftable(self, required, count):
         if self.source == None:
-            dbs.error('item.py', 'Craft with source unbinded')
+            dbg.error('item.py', 'Craft with source unbinded')
             return False
         for itemname, icount in required.items():
             if self.source.count_item(itemname) < icount * count:

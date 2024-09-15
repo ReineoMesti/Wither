@@ -54,6 +54,7 @@ def midright_change_response(*arg):
     elif title == 'Craft':
         handcraft_bar.flush()
 
+time.sleep(5)
 midright_bar.bind('<<NotebookTabChanged>>', midright_change_response)
 
 # init
